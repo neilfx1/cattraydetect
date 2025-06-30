@@ -2,6 +2,8 @@
 
 A YOLOv8-based MQTT motion detection server that monitors Frigate alerts, runs object detection against recent snapshots, and sends annotated notifications to Telegram — including animated GIFs generated from recent frames.
 
+I built this because I had a unwell cat and needed to keep a close eye on his litter tray usage.  Having multiple cats it wasn't always easy to work out who did what.  I now use it as a general notification system to remind me to go and clean the trays and so I know for sure the cats are all using the trays.
+
 ---
 
 ## Features
@@ -21,7 +23,8 @@ A YOLOv8-based MQTT motion detection server that monitors Frigate alerts, runs o
 * A trained YOLOv8 model capable of identifying individual cats.
 * A Telegram bot token and chat ID.
 * Frigate with MQTT and snapshot API access.
-* A Linux system with systemd (for reliable operation and secret management).
+* A camera pointing at the litter tray(s)
+* A Linux system or container with systemd (for reliable operation and secret management).
 
 ---
 
@@ -80,10 +83,11 @@ A YOLOv8-based MQTT motion detection server that monitors Frigate alerts, runs o
 
 * All secrets and config values are read from the systemd environment.
 * The system uses cooldown logic to avoid duplicate alerts.
-* The animated GIF is created from cropped stills at the time of motion.
+* The animated GIF is created from cropped stills at the time of motion.  There is a function in the code to swap this to single screenshot only if thats preferred.
 * SAVE_FOLDER will retain a copy of the image.  This can be used to train YOLO for your cat(s)
 * The output image/gif for Telegram is currently cropped as an example to show it focussing on an area.  You can remove the cropping if desired.
-
+* This was built for my requirements and will likely require some tweaking to work for you.
+  
 ---
 
 ## License
