@@ -133,22 +133,19 @@ def send_telegram_snapshot(caption, image_path): #If you don't want to send a GI
             logger.error("Failed to read image for Telegram cropping.")
     except Exception as e:
         logger.error(f"Error sending gif to Telegram: {e}")
-
+        
 def send_telegram_gif(caption):
-    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendAnimation"
+    logger.info("Sending GIF to Telegram...")
     try:
-        with open(OUTPUT_GIF, "rb") as gif:
-            files = {"animation": (os.path.basename(OUTPUT_GIF), gif, "image/gif")}
-            payload = {
-                "chat_id": TELEGRAM_CHAT_ID,
-                "caption": caption,
-                "parse_mode": "HTML"
-            }
+        url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendDocument"
+        with open(OUTPUT_GIF, "rb") as gif_file:
+            payload = {"chat_id": TELEGRAM_CHAT_ID, "caption": caption}
+            files = {"document": gif_file}
             response = requests.post(url, data=payload, files=files)
             if response.status_code == 200:
-                logger.info("GIF sent to Telegram (inline).")
+                logger.info("GIF sent to Telegram.")
             else:
-                logger.error(f"Failed to send GIF, status code: {response.status_code}, response: {response.text}")
+                logger.error(f"Failed to send GIF, status code: {response.status_code}")
     except Exception as e:
         logger.error(f"Error sending GIF to Telegram: {e}")
 
