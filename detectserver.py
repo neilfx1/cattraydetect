@@ -229,7 +229,7 @@ def on_message(client, userdata, msg):
                             confidence = box.conf.item()
                             class_id = int(box.cls.item())
                             label = model.names[class_id]
-                            if label in ["Toby", "Cosmo", "Noah"]:
+                            if label in CAT_NAMES:
                                 if confidence > 0.7:
                                     detected_cats.add(label)
                                     logger.info(f"Detected {label} with confidence {confidence:.2f}")
