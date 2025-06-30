@@ -1,0 +1,6 @@
+imageio==2.37.0
+numpy==2.3.1
+opencv_python==4.11.0.86
+paho_mqtt==2.1.0
+Requests==2.32.4
+ultralytics==8.3.139
