@@ -1,0 +1,16 @@
+[Unit]
+Description=Cat Detection Server
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /opt/catdetect/detectionserver.py
+EnvironmentFile=/etc/detectionserver.env
+Restart=always
+User=root
+WorkingDirectory=/opt/catdetect
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
