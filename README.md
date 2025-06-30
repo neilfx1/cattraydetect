@@ -94,9 +94,7 @@ MIT — see [LICENSE](LICENSE) for details.
 
 ## Example Output
 
-| Detected Cats | Example Telegram Notification   |
-| ------------- | ------------------------------- |
-| Felix        | ![Felix Detected in the litter tray] |
+![Sample Notification](sample.png)
 
 ---
 
