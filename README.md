@@ -20,6 +20,7 @@ I built this because I had a unwell cat and needed to keep a close eye on his li
 ## Requirements
 
 * Python 3.10+
+* FFMpeg
 * A trained YOLOv8 model capable of identifying individual cats.
 * A Telegram bot token and chat ID.
 * Frigate with MQTT and snapshot API access.
