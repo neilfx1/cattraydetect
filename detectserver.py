@@ -36,10 +36,10 @@ if not cat_names_env:
     raise RuntimeError("Environment variable CAT_NAMES is required but not set.")
 CAT_NAMES = cat_names_env.split(",")
 
-# GIF Generation Tuning
-FRAME_INTERVAL = 0.5 #How often to take a capture from IMAGE_URL
-DURATION = 5 #Length of the gif
-OUTPUT_GIF = os.getenv("OUTPUT_GIF", "/tmp/catgif.gif")
+# MP4 Generation Tuning
+FRAME_INTERVAL = 0.25 #How often to take a capture from IMAGE_URL
+DURATION = 8 #Length of the video
+OUTPUT_VIDEO = os.getenv("OUTPUT_VIDEO", "/tmp/catvideo.mp4")
 
 # YOLO Model
 YOLO_MODEL_PATH = os.getenv("YOLO_MODEL_PATH")
@@ -51,7 +51,7 @@ YOLO_CONFIDENCE = 0.7
 # Image settings
 SAVE_FOLDER = os.getenv("SAVE_FOLDER", "/tmp/cattrays")
 IMAGE_URL = os.getenv("IMAGE_URL")
-TEMP_DIR = os.getenv("TEMP_DIR", "/tmp/cattray_gif")
+TEMP_DIR = os.getenv("TEMP_DIR", "/tmp/catvideo_mp4")
 
 os.makedirs(SAVE_FOLDER, exist_ok=True)
 os.makedirs(TEMP_DIR, exist_ok=True)
@@ -106,14 +106,14 @@ def detect_cats_and_notify(image):
             active_cats.update(detected_cats)
             message = f"{', '.join(detected_cats)} detected in the litter tray."
             logger.info(message)
-            send_telegram_gif(message)
+            send_telegram_video(message)
             last_motion_time = time.time()
         else:
             logger.info("No cat detected. Skipping Telegram notification.")
     except Exception as e:
         logger.error(f"Error during YOLO processing or file I/O: {e}")
 
-def send_telegram_snapshot(caption, image_path): #If you don't want to send a GIF then use this to send an image instead
+def send_telegram_snapshot(caption, image_path): #Used to send a quick snapshot if another cat appears in the litter tray after the first cat(s) enter. Could also be used as a static shot if you do not wish to use MP4/GIF
     logger.info("Sending snapshot to Telegram...")
     try:
         url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendPhoto"
@@ -133,21 +133,30 @@ def send_telegram_snapshot(caption, image_path): #If you don't want to send a GI
             logger.error("Failed to read image for Telegram cropping.")
     except Exception as e:
         logger.error(f"Error sending gif to Telegram: {e}")
-        
-def send_telegram_gif(caption):
-    logger.info("Sending GIF to Telegram...")
+
+def send_telegram_video(caption): #This sends the video as a looping GIF in Telegram so there are a few seconds context
+    logger.info("Sending video to Telegram...")
     try:
-        url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendDocument"
-        with open(OUTPUT_GIF, "rb") as gif_file:
-            payload = {"chat_id": TELEGRAM_CHAT_ID, "caption": caption}
-            files = {"document": gif_file}
+        url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendAnimation"
+        with open("telegram_ready.mp4", "rb") as video_file:
+            payload = {
+                "chat_id": TELEGRAM_CHAT_ID,
+                "caption": caption,
+                "width": 640,
+                "height": 480,
+                "duration": DURATION,
+                "parse_mode": "Markdown"
+            }
+            files = {
+                "animation": ("telegram_ready.mp4", video_file, "video/mp4")
+            }
             response = requests.post(url, data=payload, files=files)
             if response.status_code == 200:
-                logger.info("GIF sent to Telegram.")
+                logger.info("Video sent to Telegram.")
             else:
-                logger.error(f"Failed to send GIF, status code: {response.status_code}")
+                logger.info(f"Failed to send video, status code: {response.status_code}")
     except Exception as e:
-        logger.error(f"Error sending GIF to Telegram: {e}")
+        logger.info(f"Error sending video to Telegram: {e}")
 
 def download_and_process_image():
     try:
@@ -155,7 +164,7 @@ def download_and_process_image():
         if response.status_code == 200:
             image = cv2.imdecode(np.frombuffer(response.content, np.uint8), cv2.IMREAD_COLOR)
             if image is not None:
-                create_gif_from_activity()
+                create_mp4_from_activity()
                 detect_cats_and_notify(image)
             else:
                 logger.error("Failed to decode image for YOLO")
@@ -164,7 +173,7 @@ def download_and_process_image():
     except Exception as e:
         logger.error(f"Error downloading image: {e}")
 
-def create_gif_from_activity():
+def create_mp4_from_activity():
 
     os.makedirs(TEMP_DIR, exist_ok=True)
 
@@ -179,6 +188,7 @@ def create_gif_from_activity():
                 image = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
                 if image is not None:
                     cropped = image[80:, 100:900]
+                    cropped = cv2.resize(cropped, (640, 480))
                     frame_path = os.path.join(TEMP_DIR, f"frame_{i}.jpg")
                     cv2.imwrite(frame_path, cropped)
                     frames.append(cropped)
@@ -187,9 +197,17 @@ def create_gif_from_activity():
 
         time.sleep(FRAME_INTERVAL)
 
-    # Convert to RGB and build GIF
-    rgb_frames = [cv2.cvtColor(f, cv2.COLOR_BGR2RGB) for f in frames]
-    imageio.mimsave(OUTPUT_GIF, rgb_frames, duration=FRAME_INTERVAL)
+    # Write frames to MP4 video
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    out = cv2.VideoWriter(OUTPUT_VIDEO, fourcc, int(1 / FRAME_INTERVAL), (640, 480))
+    for frame in frames:
+        out.write(frame)
+    out.release()
+
+    # Re-encode video for Telegram compatibility
+    reencoded_video = "telegram_ready.mp4"
+    ffmpeg_cmd = f"ffmpeg -y -i {OUTPUT_VIDEO} -c:v libx264 -profile:v baseline -level 3.0 -pix_fmt yuv420p -movflags +faststart {reencoded_video}"
+    os.system(ffmpeg_cmd)
 
     # Clean up temp directory
     shutil.rmtree(TEMP_DIR)
